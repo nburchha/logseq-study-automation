@@ -1,6 +1,6 @@
 ---
 name: read-and-search-logseq
-description: Reads a specific .md file or searches the entire Logseq graph directory for files containing specific state tags.
+description: Reads Logseq files or searches for specific tags/strings with block-level or file-level precision.
 ---
 # Skill: read-and-search-logseq
 
@@ -10,23 +10,27 @@ description: Reads a specific .md file or searches the entire Logseq graph direc
 {
   "type": "object",
   "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["read", "search"],
+      "description": "Whether to read a specific file or search for a tag/string."
+    },
     "file_path": {
       "type": "string",
-      "description": "Optional exact path to a specific Logseq markdown file to read."
+      "description": "The path to the Logseq markdown file (required for 'read')."
     },
-    "tag": {
+    "query": {
       "type": "string",
-      "description": "Optional state tag to search for across the Logseq directory (e.g., '#review-ready'). Include the hash symbol."
+      "description": "The tag (e.g., '#review') or text to search for (required for 'search')."
     },
-    "directory": {
+    "search_scope": {
       "type": "string",
-      "description": "The root directory of the Logseq graph."
+      "enum": ["file", "block"],
+      "default": "file",
+      "description": "Whether to return the matching files or the specific blocks containing the match."
     }
   },
-  "anyOf": [
-    {"required": ["file_path"]},
-    {"required": ["tag", "directory"]}
-  ]
+  "required": ["action"]
 }
 ```
 
@@ -35,25 +39,30 @@ description: Reads a specific .md file or searches the entire Logseq graph direc
 {
   "type": "object",
   "properties": {
+    "success": { "type": "boolean" },
     "results": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "path": { "type": "string" },
-          "content": { "type": "string" }
+          "file_path": { "type": "string" },
+          "content": { "type": "string" },
+          "block_id": { "type": "string", "nullable": true }
         }
       },
-      "description": "List of matching files and their complete text content."
-    }
+      "description": "List of matching files or blocks."
+    },
+    "error": { "type": "string" }
   }
 }
 ```
 
 ## Logic
-1. **Direct Read Mode (if `file_path` is provided):** Read the file directly from disk and return its content in a single-item array.
-2. **Search Mode (if `tag` is provided):**
-   - Traverse the provided `directory` recursively (typically focusing on `pages/` and `journals/` folders).
-   - Use a fast grep-like mechanism or AST-based Markdown parser to identify files that contain the specified `tag`.
-   - Read the contents of all matching files.
-3. Return the populated array of `results`.
+1. **Action: read**
+   - Read the file at `file_path`.
+   - Return the full content in the `results` array.
+2. **Action: search**
+   - Use `grep` (or equivalent) to find occurrences of `query` in `pages/` and `journals/`.
+   - If `search_scope` is `file`: Return unique file paths and their full content.
+   - If `search_scope` is `block`: For each match, isolate the Logseq block (from bullet to next bullet at same/higher indentation) and return its content along with its `id::` if present.
+3. Return the results.
