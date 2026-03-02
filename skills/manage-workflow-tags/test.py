@@ -1,55 +1,51 @@
 import os
 import shutil
-import sys
-
-# Add the current directory to sys.path to import the handler
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+import json
 from handler import manage_workflow_tags
 
-def test_manage_workflow_tags():
-    test_dir = os.path.join(os.path.dirname(__file__), "test_logseq")
+def test_single_action_workflow():
+    test_dir = os.path.join(os.path.dirname(__file__), "test_logseq_new")
     os.makedirs(test_dir, exist_ok=True)
     
-    # 1. Test adding to tags:: property
-    file_with_props = os.path.join(test_dir, "props.md")
-    with open(file_with_props, "w") as f:
-        f.write("tags:: #initial\ntitle:: Test Page\n\n- some content")
+    # 1. Test File-level Add
+    file_path = os.path.join(test_dir, "file_add.md")
+    with open(file_path, "w") as f:
+        f.write("tags:: #existing")
     
-    print("Testing adding to tags:: property...")
-    res = manage_workflow_tags(file_with_props, add_tags=["#anki-pending"])
+    print("Testing file-level add...")
+    res = manage_workflow_tags(file_path, action="add", tag="#new")
     assert res["success"] == True
-    assert "tags:: #initial, #anki-pending" in res["updated_content"]
-    
-    # 2. Test removing tags
-    print("Testing removing tags...")
-    res = manage_workflow_tags(file_with_props, remove_tags=["#initial"])
-    assert res["success"] == True
-    # The initial tag should be gone, but the property line and the other tag should remain
-    assert "#initial" not in res["updated_content"]
-    assert "#anki-pending" in res["updated_content"]
+    assert "#new" in res["updated_content"]
+    assert "tags:: #existing, #new" in res["updated_content"]
 
-    # 3. Test appending to file without properties
-    file_no_props = os.path.join(test_dir, "no_props.md")
-    with open(file_no_props, "w") as f:
-        f.write("- item 1\n- item 2")
+    # 2. Test Block-level Replace
+    block_file = os.path.join(test_dir, "block_replace.md")
+    with open(block_file, "w") as f:
+        f.write("- block 1 #old\n  id:: 123\n- block 2 #old")
     
-    print("Testing appending to end of file...")
-    res = manage_workflow_tags(file_no_props, add_tags=["#review-ready"])
+    print("Testing block-level replace...")
+    res = manage_workflow_tags(block_file, action="replace", old_tag="#old", new_tag="#new", block_id="123")
     assert res["success"] == True
-    assert res["updated_content"].strip().endswith("#review-ready")
-    
-    print("All manage-workflow-tags tests passed!")
-    
+    assert "- block 1 #new" in res["updated_content"]
+    assert "- block 2 #old" in res["updated_content"]
+
+    # 3. Test Block-level Remove
+    res = manage_workflow_tags(block_file, action="remove", tag="#new", block_id="123")
+    assert res["success"] == True
+    assert "- block 1" in res["updated_content"]
+    assert "#new" not in res["updated_content"].splitlines()[0]
+
     # Cleanup
     if os.path.exists(test_dir):
         shutil.rmtree(test_dir)
+    print("All redesigned tests passed!")
 
 if __name__ == "__main__":
     try:
-        test_manage_workflow_tags()
+        test_single_action_workflow()
     except AssertionError as e:
         print(f"Test failed!")
         exit(1)
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"Error: {e}")
         exit(1)

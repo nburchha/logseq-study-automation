@@ -1,54 +1,35 @@
----
-name: manage-workflow-tags
-description: Replaces or adds workflow state tags in a Logseq markdown file to track the progress of cognitive tasks.
----
-# Skill: manage-workflow-tags
+# Manage Workflow Tags
 
-## Schema
-### Inputs
+Surgically add, remove, or replace a specific workflow tag in a Logseq file or block.
+
+## Inputs
+
+- `file_path`: (string, required) The absolute path to the Logseq Markdown file.
+- `action`: (string, required) The action to perform: `add`, `remove`, or `replace`.
+- `tag`: (string) The tag to add or remove (e.g., `#todo`). Required for `add` and `remove`.
+- `old_tag`: (string) The tag to be replaced. Required for `replace`.
+- `new_tag`: (string) The tag to replace with. Required for `replace`.
+- `block_id`: (string) Optional UUID of the block to target.
+- `block_content`: (string) Optional substring to identify the block to target (searches first line of blocks).
+
+## Usage
+
+### Add a tag to a specific block
 ```json
 {
-  "type": "object",
-  "properties": {
-    "file_path": {
-      "type": "string",
-      "description": "Path to the target Logseq markdown file."
-    },
-    "add_tags": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "A list of tags to add to the file (e.g., ['#anki-pending', '#synthesis-pending'])."
-    },
-    "remove_tags": {
-      "type": "array",
-      "items": { "type": "string" },
-      "description": "A list of tags to remove from the file (e.g., ['#review-ready'])."
-    }
-  },
-  "required": ["file_path"]
+  "file_path": "/path/to/page.md",
+  "action": "add",
+  "tag": "#active",
+  "block_id": "6400..."
 }
 ```
 
-### Outputs
+### Replace a tag in the whole file
 ```json
 {
-  "type": "object",
-  "properties": {
-    "success": {
-      "type": "boolean",
-      "description": "Indicates if the tag modifications were successful."
-    },
-    "updated_content": {
-      "type": "string",
-      "description": "The resulting markdown content after modifications."
-    }
-  }
+  "file_path": "/path/to/page.md",
+  "action": "replace",
+  "old_tag": "#anki-pending",
+  "new_tag": "#anki-processed"
 }
 ```
-
-## Logic
-1. Read the full content of the file at `file_path`.
-2. **Remove Tags:** For each tag in `remove_tags`, find all occurrences of the tag in the text and replace them with an empty string, being mindful of spacing.
-3. **Add Tags:** Check if the file already contains the tags in `add_tags`. If not, append the new tags. To align with Logseq conventions, it is recommended to append them to the end of the file or to a designated 'tags::' page property block if it exists.
-4. Write the modified content back to `file_path`.
-5. Return the updated state.
