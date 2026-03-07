@@ -4,6 +4,8 @@
 - Standard list item
     - Indented standard item (4 spaces)
         - Deeper item (8 spaces)
+  - New child text
+  - Explicit child bullet
 - Here is a code block:
   ```python
   def hello_world():
