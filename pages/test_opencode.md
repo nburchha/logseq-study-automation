@@ -1,5 +1,6 @@
 - **Test Topic**
   - Point A
   - Point B
+  - This is an AI-generated insight appended safely as a child.
 - Another Block
   - Point C
