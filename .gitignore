@@ -2,6 +2,7 @@
 logseq/
 journals/
 pages/
+assets/
 
 # Python
 __pycache__/

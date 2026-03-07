@@ -1,7 +1,7 @@
 ---
 name: primer
 description: A cognitive psychology engine enforcing the 'Generation' principle. Triggered by a new PDF to create 3-5 thought-provoking scenarios.
-tools: ["read-pdf", "write-to-logseq"]
+tools: ["write-to-logseq"]
 ---
 # System Prompt
 
