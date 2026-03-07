@@ -33,6 +33,59 @@ def git_commit(file_path, message):
         pass  # Ignore if no changes or not a git repo
 
 
+def format_logseq_content(content, base_indent=""):
+    """
+    Converts generic markdown into valid Logseq outliner format.
+    - Wraps everything in bullets if not already.
+    - Preserves code blocks as Shift+Enter text (indented without bullets).
+    - Preserves block properties (e.g. id:: 123) correctly.
+    - Handles nested sub-bullets correctly.
+    """
+    lines = content.splitlines()
+    formatted = []
+    in_code_block = False
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped and not in_code_block:
+            continue
+
+        is_code_marker = stripped.startswith("```")
+
+        if in_code_block and not is_code_marker:
+            # Inside a code block: keep text, but indent it at least 2 spaces
+            # relative to the base_indent so Logseq knows it belongs to the parent block.
+            formatted.append(base_indent + "  " + line)
+            continue
+
+        if is_code_marker:
+            in_code_block = not in_code_block
+            # The ``` markers themselves need to be indented past the base bullet
+            formatted.append(base_indent + "  " + line.lstrip())
+            continue
+
+        # Identify Logseq properties (e.g., id:: 1234, tags:: foo)
+        if re.match(r"^[a-zA-Z0-9_-]+::\s*", stripped):
+            formatted.append(base_indent + "  " + line.lstrip())
+            continue
+
+        # For standard text outside of code blocks:
+        # Calculate existing indentation (assume 4 spaces = 2 Logseq spaces for safety)
+        leading_spaces = len(line) - len(line.lstrip())
+        normalized_indent = " " * ((leading_spaces // 2) * 2)
+
+        if stripped.startswith("- "):
+            formatted.append(base_indent + normalized_indent + line.lstrip())
+        elif stripped.startswith("* "):
+            formatted.append(base_indent + normalized_indent + "- " + stripped[2:])
+        else:
+            # Standard text: force it to be a Logseq bullet
+            formatted.append(base_indent + normalized_indent + "- " + stripped)
+
+    # Always ensure there's a trailing newline for cleaner file appends
+    return "\n".join(formatted) + "\n"
+
+
 def write_to_logseq(file_path, content, mode, parent_block_query=None):
     try:
         # Ensure directory exists
@@ -47,11 +100,11 @@ def write_to_logseq(file_path, content, mode, parent_block_query=None):
             if os.path.exists(file_path):
                 return {"success": False, "error": f"File already exists: {file_path}"}
             with open(file_path, "w", encoding="utf-8") as f:
-                f.write(content)
+                f.write(format_logseq_content(content, ""))
 
         elif mode == "overwrite":
             with open(file_path, "w", encoding="utf-8") as f:
-                f.write(content)
+                f.write(format_logseq_content(content, ""))
 
         elif mode == "append":
             file_exists = os.path.exists(file_path)
@@ -59,7 +112,7 @@ def write_to_logseq(file_path, content, mode, parent_block_query=None):
                 # Add newline if file exists and isn't empty
                 if file_exists and os.path.getsize(file_path) > 0:
                     f.write("\n")
-                f.write(content)
+                f.write(format_logseq_content(content, ""))
 
         elif mode == "append_child_to_block":
             if not parent_block_query:
@@ -109,12 +162,7 @@ def write_to_logseq(file_path, content, mode, parent_block_query=None):
             child_indent = indent_str + "  "
 
             # Format the incoming content to match the child indentation
-            formatted_content = ""
-            for line in content.splitlines():
-                if line.strip().startswith("- "):
-                    formatted_content += child_indent + line + "\n"
-                else:
-                    formatted_content += child_indent + "- " + line + "\n"
+            formatted_content = format_logseq_content(content, child_indent)
 
             lines.insert(insert_idx, formatted_content)
 
