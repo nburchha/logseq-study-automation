@@ -6,6 +6,11 @@
         - Deeper item (8 spaces)
   - New child text
   - Explicit child bullet
+  - New child text
+  - Explicit child bullet
+    ```python
+    x = 2
+    ```
 - Here is a code block:
   ```python
   def hello_world():
