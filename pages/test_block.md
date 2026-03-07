@@ -4,5 +4,6 @@
   - Child A2
   - New Insight 1
   - New Insight 2
+  - New Insight 3
 - Block B
   - Child B1
