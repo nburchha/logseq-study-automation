@@ -1,9 +1,3 @@
-# Logseq configuration and data
-logseq/
-journals/
-pages/
-assets/
-
 # Python
 __pycache__/
 *.py[cod]
